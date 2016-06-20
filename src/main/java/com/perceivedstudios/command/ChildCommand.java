@@ -23,6 +23,11 @@ public abstract class ChildCommand
 
     private String permissionMessage;
 
+    public ChildCommand(Command parent, String executor)
+    {
+        this(parent, null, new String[] { executor });
+    }
+
     public ChildCommand(Command parent, String... executors)
     {
         this(parent, null, executors);
