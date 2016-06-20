@@ -22,7 +22,7 @@ b) Add the dependency...
 <dependency>
     <groupId>com.github.OutdatedVersion</groupId>
     <artifactId>child-commands</artifactId>
-    <version>2.0</version>
+    <version>2.1</version>
 </dependency>
 ```
 
