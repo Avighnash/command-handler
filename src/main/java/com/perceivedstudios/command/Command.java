@@ -2,30 +2,45 @@ package com.perceivedstudios.command;
 
 import org.bukkit.entity.Player;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * OutdatedVersion
- * At: 11:35 PM (Apr/09/2016)
- * subcommand-testing
+ * 11:35 PM (Apr/09/2016)
  */
 
 public abstract class Command
 {
 
-    /** See {@link #getExecutor()} */
+    /** See {@link #executor()} */
     private final String mainExecutor;
+
+    /** Similar to the {@link #mainExecutor} */
+    private final List<String> aliases;
+
+    /** The permission node someone must have to use this */
+    private final String permissionNode;
+
     /** A map that relates each key to it's sub-command */
     private HashMap<String, ChildCommand> childCommandRelation;
 
-    public Command(String main)
+    public Command(String executor)
     {
-        this.mainExecutor = main;
+        this(null, executor);
+    }
 
+    public Command(String permission, String... executors)
+    {
+        mainExecutor = executors[0];
+        aliases = Arrays.asList(executors);
+        permissionNode = permission;
         childCommandRelation = new HashMap<>();
 
-        // Register
-        CommandListener.get().addCommand(this);
+        // Register this with our handler
+        CommandHandler.get().addCommand(this);
     }
 
     /**
@@ -36,9 +51,42 @@ public abstract class Command
      *
      * @return {@link String} The main executor for this command
      */
-    public String getExecutor()
+    public final String executor()
     {
         return mainExecutor;
+    }
+
+    /**
+     * Gets the permission node that
+     * this command searches for whenever
+     * a player executed this base command.
+     * This will only occur if our node
+     * is not <code>null</code>. Each
+     * individual {@link ChildCommand}
+     * may also have it's own node.
+     *
+     * @return {@link String} The node
+     */
+    public final String permissionNode()
+    {
+        return permissionNode;
+    }
+
+    /**
+     * Gets the alternate executors
+     * this command uses. For example,
+     * you may have <span style="font-style: italic">/kittens</span>
+     * which summons multiple cats. Though,
+     * you'd also like to be able to do
+     * <span style="font-style: italic">/cats</span> to achieve this
+     * same goal. Supply an extra <code>String</code> within
+     * the construction of this command to do this.
+     *
+     * @return {@link String[]} All possible nodes as an array
+     */
+    public final List<String> aliases()
+    {
+        return Collections.unmodifiableList(aliases);
     }
 
     /**
@@ -49,9 +97,9 @@ public abstract class Command
      *
      * @param command {@link ChildCommand} The command to use
      */
-    public void registerChildCommand(ChildCommand command)
+    public void addChild(ChildCommand command)
     {
-        childCommandRelation.put(command.getExecutor(), command);
+        childCommandRelation.put(command.executor(), command);
     }
 
     /**
@@ -71,19 +119,25 @@ public abstract class Command
      * @param player The player attempting this
      * @param args The player's provided arguments
      */
-    protected void attemptSubCommand(Player player, String[] args)
+    protected void attemptChildCommand(Player player, String[] args)
     {
-        String _attempt = args[0];
+        String _attempt = args[0].toLowerCase();
 
         childCommandRelation.forEach((key, command) ->
         {
-
-            if (_attempt.equalsIgnoreCase(key))
+            String _permissionMessage = command.message();
+            if (_attempt.equals(key) || command.aliases().contains(_attempt))
             {
+                if (command.permissionNode() != null)
+                    if (!player.hasPermission(_permissionMessage))
+                    {
+                        player.sendMessage(_permissionMessage);
+                        return;
+                    }
+
                 command.execute(player, args);
                 return;
             }
-
         });
     }
 
